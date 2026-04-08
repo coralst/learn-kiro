@@ -146,6 +146,39 @@ describe('ProfileCard — loading skeleton state (Task 2.2)', () => {
   });
 });
 
+describe('ProfileCard — size variant support (Task 2.4)', () => {
+  it('applies sm CSS class when size="sm"', () => {
+    const { container } = render(<ProfileCard user={fullUser} size="sm" />);
+    const article = container.querySelector('article')!;
+    expect(article.className).toContain('sm');
+  });
+
+  it('applies md CSS class when size="md"', () => {
+    const { container } = render(<ProfileCard user={fullUser} size="md" />);
+    const article = container.querySelector('article')!;
+    expect(article.className).toContain('md');
+  });
+
+  it('applies lg CSS class when size="lg"', () => {
+    const { container } = render(<ProfileCard user={fullUser} size="lg" />);
+    const article = container.querySelector('article')!;
+    expect(article.className).toContain('lg');
+  });
+
+  it('defaults to md CSS class when no size prop is provided', () => {
+    const { container } = render(<ProfileCard user={fullUser} />);
+    const article = container.querySelector('article')!;
+    expect(article.className).toContain('md');
+  });
+
+  it('applies size class alongside card class', () => {
+    const { container } = render(<ProfileCard user={fullUser} size="lg" />);
+    const article = container.querySelector('article')!;
+    expect(article.className).toContain('card');
+    expect(article.className).toContain('lg');
+  });
+});
+
 import { fireEvent } from '@testing-library/react';
 
 describe('ProfileCard — error and empty states (Task 2.3)', () => {
