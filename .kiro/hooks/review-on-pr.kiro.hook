@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "name": "Auto Review on PR Creation",
+  "description": "After creating a GitHub PR, automatically trigger the code-reviewer agent to post a structured review.",
+  "version": "1",
+  "when": {
+    "type": "postToolUse",
+    "toolTypes": [".*create_pull_request$"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A pull request was just created. Use the code-reviewer agent to review it: get the PR files, analyze each changed file against the review checklist (correctness, security, error handling, types, docstrings, tests, PR hygiene), and post a structured review with inline comments using create_pull_request_review. Use severity prefixes (🔴 Must fix / 🟡 Should fix / 🟢 Nit). Use REQUEST_CHANGES if any 🔴 items exist, otherwise COMMENT."
+  }
+}

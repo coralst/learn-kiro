@@ -1,0 +1,80 @@
+name: PR Review Gate
+
+on:
+  pull_request:
+    branches: [main]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  check-review-comments:
+    name: Verify review comments exist
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check that at least one review has been submitted
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "Checking reviews on PR #$PR_NUMBER..."
+
+          REVIEWS=$(gh api "repos/$REPO/pulls/$PR_NUMBER/reviews" --jq 'length')
+
+          if [ "$REVIEWS" -eq 0 ]; then
+            echo "::error::No reviews found on this PR. At least one review is required before merge."
+            exit 1
+          fi
+
+          echo "✅ Found $REVIEWS review(s) on this PR."
+
+  check-unresolved-threads:
+    name: Block merge on unresolved review threads
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for unresolved review threads
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: { repository } } = await github.graphql(`
+              query($owner: String!, $repo: String!, $pr: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $pr) {
+                    reviewThreads(first: 100) {
+                      nodes {
+                        isResolved
+                        comments(first: 1) {
+                          nodes {
+                            body
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pr: context.issue.number
+            });
+
+            const threads = repository.pullRequest.reviewThreads.nodes;
+            const unresolved = threads.filter(t => !t.isResolved);
+
+            console.log(`Total review threads: ${threads.length}`);
+            console.log(`Unresolved threads: ${unresolved.length}`);
+
+            if (unresolved.length > 0) {
+              for (const thread of unresolved) {
+                const preview = thread.comments.nodes[0]?.body?.substring(0, 80) || '(empty)';
+                console.log(`  ❌ Unresolved: ${preview}...`);
+              }
+              core.setFailed(`${unresolved.length} unresolved review thread(s) found. Resolve all conversations before merging.`);
+            } else {
+              console.log('✅ All review threads are resolved.');
+            }
