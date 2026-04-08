@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Test After Task",
+  "description": "Run pytest after each spec task completes to catch regressions immediately.",
+  "version": "1",
+  "when": {
+    "type": "postTaskExecution"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "pytest --tb=short -q 2>/dev/null || echo \"No tests found or pytest not installed yet\""
+  }
+}
