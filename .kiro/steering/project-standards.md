@@ -14,10 +14,14 @@ inclusion: always
   - `chore: update dependencies`
   - `refactor: simplify compatibility tool`
   - `test: add coach conversation tests`
+- Prefer small, focused commits — commit early and often as you make progress.
+- Each commit should ideally represent one logical step (a feature, a fix, a refactor).
+- Avoid large commits that mix unrelated changes when possible.
 - Before any commit, ensure:
   1. Code passes linting (`ruff check .`)
   2. Tests pass (`pytest`)
   3. No secrets or API keys in code
+  4. Staged files are cohesive — all related to the same logical change
 - PRs require at least a self-review checklist before merge.
 - Squash merge to `main` preferred.
 
