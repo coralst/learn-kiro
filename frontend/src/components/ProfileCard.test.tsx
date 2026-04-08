@@ -179,6 +179,53 @@ describe('ProfileCard — size variant support (Task 2.4)', () => {
   });
 });
 
+import fc from 'fast-check';
+
+/**
+ * Property 1: Profile data rendering completeness
+ *
+ * For any valid UserProfile with all fields populated, the rendered output
+ * contains displayName text, an image with avatarUrl src, and bio text.
+ *
+ * **Validates: Requirements 1.1, 1.2, 1.3**
+ */
+describe('ProfileCard — Property 1: Profile data rendering completeness (Task 5.2)', () => {
+  const arbUserProfile = fc.record({
+    id: fc.string({ minLength: 1 }).filter((s) => s.trim().length > 0),
+    displayName: fc.string({ minLength: 1 }).filter((s) => s.trim().length > 0),
+    avatarUrl: fc.webUrl().map((url) => `${url}/avatar.png`),
+    bio: fc.string({ minLength: 1 }).filter((s) => s.trim().length > 0),
+  });
+
+  it('renders displayName, avatar image with correct src, and bio for any valid profile', () => {
+    fc.assert(
+      fc.property(arbUserProfile, (user) => {
+        const { container, unmount } = render(<ProfileCard user={user} />);
+
+        // Requirement 1.1 — displayName is visible
+        const heading = container.querySelector('h2');
+        expect(heading).not.toBeNull();
+        expect(heading!.textContent).toBe(user.displayName);
+
+        // Requirement 1.2 — avatar image has avatarUrl as src
+        const img = container.querySelector('img');
+        expect(img).not.toBeNull();
+        expect(img!.getAttribute('src')).toBe(user.avatarUrl);
+
+        // Requirement 1.3 — bio text is present (possibly truncated)
+        const expectedBio =
+          user.bio!.length > 160 ? user.bio!.slice(0, 160) + '\u2026' : user.bio!;
+        const bioEl = container.querySelector('p');
+        expect(bioEl).not.toBeNull();
+        expect(bioEl!.textContent).toBe(expectedBio);
+
+        unmount();
+      }),
+      { numRuns: 50 },
+    );
+  });
+});
+
 import { fireEvent } from '@testing-library/react';
 
 describe('ProfileCard — error and empty states (Task 2.3)', () => {
