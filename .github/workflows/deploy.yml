@@ -1,0 +1,31 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-arn: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install AgentCore CLI
+        run: pip install bedrock-agentcore-starter-toolkit
+
+      - name: Deploy agent
+        run: agentcore launch

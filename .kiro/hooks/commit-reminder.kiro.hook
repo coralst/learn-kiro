@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Commit Reminder on Stop",
+  "description": "When the agent finishes execution, check for uncommitted changes and remind to commit with a conventional commit message and push.",
+  "version": "1",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "The agent just finished work. Run `git status --short` and `git diff --stat`. If there are uncommitted changes, remind the user to: 1) Stage changes with `git add`, 2) Commit with a conventional commit message (feat:/fix:/chore:/refactor:/test:), 3) Push to the remote feature branch. List the specific files changed and suggest an appropriate commit message. If everything is clean, say nothing."
+  }
+}
