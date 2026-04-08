@@ -64,45 +64,47 @@ jobs:
             echo "number=$PR_NUMBER_PR" >> "$GITHUB_OUTPUT"
           fi
       - name: Check for unresolved review threads
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prNumber = parseInt('${{ steps.pr.outputs.number }}', 10);
-            const { data: { repository } } = await github.graphql(`
-              query($owner: String!, $repo: String!, $pr: Int!) {
-                repository(owner: $owner, name: $repo) {
-                  pullRequest(number: $pr) {
-                    reviewThreads(first: 100) {
-                      nodes {
-                        isResolved
-                        comments(first: 1) {
-                          nodes {
-                            body
-                          }
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          OWNER=$(echo "$REPO" | cut -d'/' -f1)
+          REPO_NAME=$(echo "$REPO" | cut -d'/' -f2)
+
+          echo "Checking review threads on PR #$PR_NUMBER..."
+
+          RESULT=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!, $pr: Int!) {
+              repository(owner: $owner, name: $repo) {
+                pullRequest(number: $pr) {
+                  reviewThreads(first: 100) {
+                    nodes {
+                      isResolved
+                      comments(first: 1) {
+                        nodes {
+                          body
                         }
                       }
                     }
                   }
                 }
               }
-            `, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pr: prNumber
-            });
-
-            const threads = repository.pullRequest.reviewThreads.nodes;
-            const unresolved = threads.filter(t => !t.isResolved);
-
-            console.log(`Total review threads: ${threads.length}`);
-            console.log(`Unresolved threads: ${unresolved.length}`);
-
-            if (unresolved.length > 0) {
-              for (const thread of unresolved) {
-                const preview = thread.comments.nodes[0]?.body?.substring(0, 80) || '(empty)';
-                console.log(`  ❌ Unresolved: ${preview}...`);
-              }
-              core.setFailed(`${unresolved.length} unresolved review thread(s) found. Resolve all conversations before merging.`);
-            } else {
-              console.log('✅ All review threads are resolved.');
             }
+          ' -f owner="$OWNER" -f repo="$REPO_NAME" -F pr="$PR_NUMBER")
+
+          TOTAL=$(echo "$RESULT" | jq '.data.repository.pullRequest.reviewThreads.nodes | length')
+          UNRESOLVED=$(echo "$RESULT" | jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)] | length')
+
+          echo "Total review threads: $TOTAL"
+          echo "Unresolved threads: $UNRESOLVED"
+
+          if [ "$UNRESOLVED" -gt 0 ]; then
+            echo "$RESULT" | jq -r '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | .comments.nodes[0].body[:80]' | while read -r line; do
+              echo "  ❌ Unresolved: $line"
+            done
+            echo "::error::$UNRESOLVED unresolved review thread(s) found. Resolve all conversations before merging."
+            exit 1
+          fi
+
+          echo "✅ All review threads are resolved."
