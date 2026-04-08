@@ -1,0 +1,63 @@
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dist/
+build/
+.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+*.egg
+venv/
+.venv/
+.Python
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+target/
+
+# Logs
+*.log
+logs/
+
+# Coverage / Testing
+coverage/
+.nyc_output/
+htmlcov/
+.coverage
+
+# Compiled output
+*.o
+*.so
+*.dll
+*.dylib
+
+# Package files
+*.zip
+*.tar.gz
+*.rar
