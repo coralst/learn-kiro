@@ -145,3 +145,68 @@ describe('ProfileCard — loading skeleton state (Task 2.2)', () => {
     expect(container.querySelector('.skeleton')).not.toBeInTheDocument();
   });
 });
+
+import { fireEvent } from '@testing-library/react';
+
+describe('ProfileCard — error and empty states (Task 2.3)', () => {
+  it('renders fallback avatar when avatarUrl is missing', () => {
+    const noAvatarUser: UserProfile = { id: 'u3', displayName: 'Grace Hopper' };
+    const { container } = render(<ProfileCard user={noAvatarUser} />);
+    const fallback = container.querySelector('.fallbackAvatar');
+    expect(fallback).toBeInTheDocument();
+    expect(fallback).toHaveAttribute('role', 'img');
+    expect(fallback).toHaveAttribute('aria-label', 'No photo available');
+  });
+
+  it('does not render an img element when avatarUrl is missing', () => {
+    const noAvatarUser: UserProfile = { id: 'u3', displayName: 'Grace Hopper' };
+    render(<ProfileCard user={noAvatarUser} />);
+    expect(screen.queryByRole('img', { name: /Grace Hopper/ })).not.toBeInTheDocument();
+  });
+
+  it('renders fallback avatar when image onError fires', () => {
+    const user: UserProfile = {
+      id: 'u4',
+      displayName: 'Alan Turing',
+      avatarUrl: 'https://example.com/broken.jpg',
+    };
+    const { container } = render(<ProfileCard user={user} />);
+    const img = screen.getByRole('img', { name: /Alan Turing/ });
+    fireEvent.error(img);
+    const fallback = container.querySelector('.fallbackAvatar');
+    expect(fallback).toBeInTheDocument();
+    expect(fallback).toHaveAttribute('aria-label', 'No photo available');
+  });
+
+  it('removes the broken img element after onError fires', () => {
+    const user: UserProfile = {
+      id: 'u4',
+      displayName: 'Alan Turing',
+      avatarUrl: 'https://example.com/broken.jpg',
+    };
+    render(<ProfileCard user={user} />);
+    const img = screen.getByRole('img', { name: /Alan Turing/ });
+    fireEvent.error(img);
+    expect(screen.queryByRole('img', { name: /Alan Turing/ })).not.toBeInTheDocument();
+  });
+
+  it('renders empty state when no user is provided and isLoading is false', () => {
+    const { container } = render(<ProfileCard />);
+    const emptyState = container.querySelector('.emptyState');
+    expect(emptyState).toBeInTheDocument();
+    expect(screen.getByText('No profile data available.')).toBeInTheDocument();
+  });
+
+  it('renders empty state inside an article element', () => {
+    const { container } = render(<ProfileCard />);
+    const article = container.querySelector('article');
+    expect(article).toBeInTheDocument();
+    expect(article!.querySelector('.emptyState')).toBeInTheDocument();
+  });
+
+  it('hides bio section when bio is absent (no empty p element)', () => {
+    const noBioUser: UserProfile = { id: 'u5', displayName: 'No Bio User' };
+    const { container } = render(<ProfileCard user={noBioUser} />);
+    expect(container.querySelector('p')).not.toBeInTheDocument();
+  });
+});

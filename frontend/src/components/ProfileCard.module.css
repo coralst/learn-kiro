@@ -18,6 +18,12 @@
 
 .fallbackAvatar {
   border-radius: 50%;
+  background-color: #e0e0e0;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .name {}
@@ -32,4 +38,8 @@
 
 .skeletonBio {}
 
-.emptyState {}
+.emptyState {
+  text-align: center;
+  color: #757575;
+  padding: 1rem;
+}
