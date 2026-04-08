@@ -43,5 +43,10 @@ export function isValidUserProfile(profile: unknown): profile is UserProfile {
     }
   }
 
+  const { bio } = profile as Record<string, unknown>;
+  if (bio !== undefined && typeof bio !== 'string') {
+    return false;
+  }
+
   return true;
 }

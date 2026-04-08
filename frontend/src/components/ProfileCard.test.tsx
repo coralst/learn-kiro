@@ -1,7 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
+import fc from 'fast-check';
 import { ProfileCard } from './ProfileCard';
 import type { UserProfile } from '../types/profile';
+import { isValidUserProfile } from '../types/profile';
 
 const fullUser: UserProfile = {
   id: 'u1',
@@ -179,8 +181,6 @@ describe('ProfileCard — size variant support (Task 2.4)', () => {
   });
 });
 
-import fc from 'fast-check';
-
 /**
  * Property 1: Profile data rendering completeness
  *
@@ -225,8 +225,6 @@ describe('ProfileCard — Property 1: Profile data rendering completeness (Task 
     );
   });
 });
-
-import { fireEvent } from '@testing-library/react';
 
 describe('ProfileCard — error and empty states (Task 2.3)', () => {
   it('renders fallback avatar when avatarUrl is missing', () => {
@@ -290,8 +288,6 @@ describe('ProfileCard — error and empty states (Task 2.3)', () => {
     expect(container.querySelector('p')).not.toBeInTheDocument();
   });
 });
-
-import { isValidUserProfile } from '../types/profile';
 
 /* ------------------------------------------------------------------ */
 /* Shared arbitrary: valid UserProfile with all required fields        */

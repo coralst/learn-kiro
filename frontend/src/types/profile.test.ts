@@ -54,4 +54,8 @@ describe('isValidUserProfile', () => {
     expect(isValidUserProfile(42)).toBe(false);
     expect(isValidUserProfile(undefined)).toBe(false);
   });
+
+  it('rejects non-string bio', () => {
+    expect(isValidUserProfile({ id: 'u1', displayName: 'Alice', bio: 123 })).toBe(false);
+  });
 });
