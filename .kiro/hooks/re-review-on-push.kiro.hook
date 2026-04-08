@@ -1,5 +1,5 @@
 {
-  "enabled": true,
+  "enabled": false,
   "name": "Re-review on PR Push",
   "description": "When files are pushed to a PR branch, re-trigger the code-reviewer to check if previous review comments were addressed. Caps at 3 review rounds to prevent infinite loops.",
   "version": "1.0.0",

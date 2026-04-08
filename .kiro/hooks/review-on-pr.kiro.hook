@@ -1,5 +1,5 @@
 {
-  "enabled": true,
+  "enabled": false,
   "name": "Auto Review on PR Creation",
   "description": "After creating a GitHub PR, automatically trigger the code-reviewer agent to post a structured review.",
   "version": "1",

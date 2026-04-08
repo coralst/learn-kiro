@@ -290,3 +290,321 @@ describe('ProfileCard — error and empty states (Task 2.3)', () => {
     expect(container.querySelector('p')).not.toBeInTheDocument();
   });
 });
+
+import { isValidUserProfile } from '../types/profile';
+
+/* ------------------------------------------------------------------ */
+/* Shared arbitrary: valid UserProfile with all required fields        */
+/* ------------------------------------------------------------------ */
+const arbId = fc.string({ minLength: 1 }).filter((s) => s.trim().length > 0);
+const arbDisplayName = fc.string({ minLength: 1 }).filter((s) => s.trim().length > 0);
+const arbAvatarUrl = fc.webUrl().map((url) => `${url}/avatar.png`);
+const arbBio = fc.string({ minLength: 1 }).filter((s) => s.trim().length > 0);
+
+const arbFullUser = fc.record({
+  id: arbId,
+  displayName: arbDisplayName,
+  avatarUrl: arbAvatarUrl,
+  bio: arbBio,
+});
+
+const arbUserNoOptionals = fc.record({
+  id: arbId,
+  displayName: arbDisplayName,
+});
+
+/**
+ * Property 2: Loading state hides user content
+ *
+ * For any UserProfile (including undefined), when isLoading is true,
+ * skeleton renders with aria-busy and no user content appears.
+ *
+ * **Validates: Requirements 2.1, 2.4, 7.3**
+ */
+describe('ProfileCard — Property 2: Loading state hides user content (Task 5.3)', () => {
+  const arbMaybeUser = fc.option(arbFullUser, { nil: undefined });
+
+  it('renders skeleton with aria-busy and hides user content for any user when isLoading', () => {
+    fc.assert(
+      fc.property(arbMaybeUser, (user) => {
+        const { container, unmount } = render(
+          <ProfileCard user={user} isLoading />,
+        );
+
+        // Requirement 2.1 — skeleton renders instead of user content
+        const article = container.querySelector('article')!;
+        expect(article).not.toBeNull();
+
+        // Requirement 2.4 / 7.3 — aria-busy is true
+        expect(article.getAttribute('aria-busy')).toBe('true');
+
+        // No user content should appear
+        expect(container.querySelector('h2')).toBeNull();
+        expect(container.querySelector('img')).toBeNull();
+        expect(container.querySelector('p')).toBeNull();
+
+        unmount();
+      }),
+      { numRuns: 50 },
+    );
+  });
+});
+
+/**
+ * Property 3: Missing optional fields are gracefully omitted
+ *
+ * For any UserProfile without avatarUrl, fallback avatar renders.
+ * For any UserProfile without bio, no bio section element exists.
+ *
+ * **Validates: Requirements 3.2, 4.2**
+ */
+describe('ProfileCard — Property 3: Missing optional fields gracefully omitted (Task 5.4)', () => {
+  it('renders fallback avatar when avatarUrl is absent', () => {
+    fc.assert(
+      fc.property(arbUserNoOptionals, (user) => {
+        const { container, unmount } = render(<ProfileCard user={user} />);
+
+        // Requirement 3.2 — fallback avatar renders
+        const fallback = container.querySelector('[role="img"][aria-label="No photo available"]');
+        expect(fallback).not.toBeNull();
+
+        // No <img> element should be present
+        expect(container.querySelector('img')).toBeNull();
+
+        unmount();
+      }),
+      { numRuns: 50 },
+    );
+  });
+
+  it('hides bio section when bio is absent', () => {
+    fc.assert(
+      fc.property(arbUserNoOptionals, (user) => {
+        const { container, unmount } = render(<ProfileCard user={user} />);
+
+        // Requirement 4.2 — no bio paragraph element
+        expect(container.querySelector('p')).toBeNull();
+
+        unmount();
+      }),
+      { numRuns: 50 },
+    );
+  });
+});
+
+/**
+ * Property 4: Bio truncation at 160 characters
+ *
+ * For any bio longer than 160 chars, displayed text is exactly
+ * 160 chars + ellipsis. For bio ≤ 160 chars, full bio displayed.
+ *
+ * **Validates: Requirements 1.4, 8.4**
+ */
+describe('ProfileCard — Property 4: Bio truncation at 160 characters (Task 5.5)', () => {
+  const arbLongBio = fc
+    .string({ minLength: 161, maxLength: 500 })
+    .filter((s) => s.trim().length > 0);
+  const arbShortBio = fc
+    .string({ minLength: 1, maxLength: 160 })
+    .filter((s) => s.trim().length > 0);
+
+  it('truncates bio longer than 160 chars to 160 + ellipsis', () => {
+    fc.assert(
+      fc.property(arbId, arbDisplayName, arbLongBio, (id, displayName, bio) => {
+        const user: UserProfile = { id, displayName, avatarUrl: 'https://example.com/a.png', bio };
+        const { container, unmount } = render(<ProfileCard user={user} />);
+
+        const bioEl = container.querySelector('p');
+        expect(bioEl).not.toBeNull();
+        expect(bioEl!.textContent).toBe(bio.slice(0, 160) + '\u2026');
+
+        unmount();
+      }),
+      { numRuns: 50 },
+    );
+  });
+
+  it('displays full bio when 160 chars or fewer', () => {
+    fc.assert(
+      fc.property(arbId, arbDisplayName, arbShortBio, (id, displayName, bio) => {
+        const user: UserProfile = { id, displayName, avatarUrl: 'https://example.com/a.png', bio };
+        const { container, unmount } = render(<ProfileCard user={user} />);
+
+        const bioEl = container.querySelector('p');
+        expect(bioEl).not.toBeNull();
+        expect(bioEl!.textContent).toBe(bio);
+
+        unmount();
+      }),
+      { numRuns: 50 },
+    );
+  });
+});
+
+/**
+ * Property 5: Size variant CSS class application
+ *
+ * For any valid size prop, the corresponding CSS class is applied.
+ * When omitted, md class is applied.
+ *
+ * **Validates: Requirements 5.1, 5.2**
+ */
+describe('ProfileCard — Property 5: Size variant CSS class application (Task 5.6)', () => {
+  const arbSize = fc.constantFrom('sm' as const, 'md' as const, 'lg' as const);
+
+  it('applies the corresponding CSS class for any valid size prop', () => {
+    fc.assert(
+      fc.property(arbFullUser, arbSize, (user, size) => {
+        const { container, unmount } = render(
+          <ProfileCard user={user} size={size} />,
+        );
+
+        const article = container.querySelector('article')!;
+        expect(article.className).toContain(size);
+
+        unmount();
+      }),
+      { numRuns: 50 },
+    );
+  });
+
+  it('defaults to md class when size prop is omitted', () => {
+    fc.assert(
+      fc.property(arbFullUser, (user) => {
+        const { container, unmount } = render(<ProfileCard user={user} />);
+
+        const article = container.querySelector('article')!;
+        expect(article.className).toContain('md');
+
+        unmount();
+      }),
+      { numRuns: 50 },
+    );
+  });
+});
+
+/**
+ * Property 6: className prop forwarding
+ *
+ * For any className string, the root element contains both the provided
+ * className and the default CSS module class.
+ *
+ * **Validates: Requirement 6.1**
+ */
+describe('ProfileCard — Property 6: className prop forwarding (Task 5.7)', () => {
+  const arbClassName = fc
+    .string({ minLength: 1, maxLength: 50 })
+    .filter((s) => /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(s));
+
+  it('root element contains both provided className and default card class', () => {
+    fc.assert(
+      fc.property(arbFullUser, arbClassName, (user, customClass) => {
+        const { container, unmount } = render(
+          <ProfileCard user={user} className={customClass} />,
+        );
+
+        const article = container.querySelector('article')!;
+        expect(article.className).toContain('card');
+        expect(article.className).toContain(customClass);
+
+        unmount();
+      }),
+      { numRuns: 50 },
+    );
+  });
+});
+
+/**
+ * Property 7: Avatar alt attribute contains displayName
+ *
+ * For any valid UserProfile, the avatar image alt attribute contains
+ * the user's displayName.
+ *
+ * **Validates: Requirement 7.1**
+ */
+describe('ProfileCard — Property 7: Avatar alt attribute contains displayName (Task 5.8)', () => {
+  it('avatar img alt contains displayName for any valid profile with avatarUrl', () => {
+    fc.assert(
+      fc.property(arbFullUser, (user) => {
+        const { container, unmount } = render(<ProfileCard user={user} />);
+
+        const img = container.querySelector('img');
+        expect(img).not.toBeNull();
+        expect(img!.getAttribute('alt')).toContain(user.displayName);
+
+        unmount();
+      }),
+      { numRuns: 50 },
+    );
+  });
+});
+
+/**
+ * Property 8: UserProfile validation
+ *
+ * Empty and whitespace-only strings are rejected for id and displayName.
+ * Only valid URL strings accepted for avatarUrl.
+ *
+ * **Validates: Requirements 8.1, 8.2, 8.3**
+ */
+describe('ProfileCard — Property 8: UserProfile validation (Task 5.9)', () => {
+  const arbWhitespace = fc
+    .array(fc.constantFrom(' ', '\t', '\n', '\r'), { minLength: 1 })
+    .map((chars) => chars.join(''));
+
+  it('rejects empty string for id', () => {
+    fc.assert(
+      fc.property(arbDisplayName, (displayName) => {
+        expect(isValidUserProfile({ id: '', displayName })).toBe(false);
+      }),
+      { numRuns: 50 },
+    );
+  });
+
+  it('rejects whitespace-only string for displayName', () => {
+    fc.assert(
+      fc.property(arbId, arbWhitespace, (id, displayName) => {
+        expect(isValidUserProfile({ id, displayName })).toBe(false);
+      }),
+      { numRuns: 50 },
+    );
+  });
+
+  it('rejects empty string for displayName', () => {
+    fc.assert(
+      fc.property(arbId, (id) => {
+        expect(isValidUserProfile({ id, displayName: '' })).toBe(false);
+      }),
+      { numRuns: 50 },
+    );
+  });
+
+  it('accepts valid URL for avatarUrl', () => {
+    fc.assert(
+      fc.property(arbId, arbDisplayName, arbAvatarUrl, (id, displayName, avatarUrl) => {
+        expect(isValidUserProfile({ id, displayName, avatarUrl })).toBe(true);
+      }),
+      { numRuns: 50 },
+    );
+  });
+
+  it('rejects invalid URL strings for avatarUrl', () => {
+    const arbInvalidUrl = fc
+      .string({ minLength: 1 })
+      .filter((s) => {
+        try {
+          new URL(s);
+          return false;
+        } catch {
+          return true;
+        }
+      });
+
+    fc.assert(
+      fc.property(arbId, arbDisplayName, arbInvalidUrl, (id, displayName, avatarUrl) => {
+        expect(isValidUserProfile({ id, displayName, avatarUrl })).toBe(false);
+      }),
+      { numRuns: 50 },
+    );
+  });
+});

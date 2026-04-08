@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Auto-commit after spec task",
+  "description": "After each spec task is completed, automatically stage and commit all changes with a conventional commit message describing the task.",
+  "version": "2",
+  "when": {
+    "type": "postTaskExecution"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A spec task was just completed. Stage all related changes and commit them with a conventional commit message (feat:, fix:, refactor:, test:, chore:) that describes what this task accomplished. Make sure to run ruff check and pytest before committing. If linting or tests fail, fix them before committing. Do NOT push — another hook handles pushing and PR management."
+  }
+}
