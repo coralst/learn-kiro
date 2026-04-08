@@ -1,0 +1,110 @@
+name: PR Review Gate
+
+on:
+  pull_request:
+    branches: [main]
+  pull_request_review:
+    types: [submitted, dismissed]
+  pull_request_review_comment:
+    types: [created]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  check-review-comments:
+    name: Verify review comments exist
+    if: github.event_name != 'issue_comment' || github.event.issue.pull_request != null
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine PR number
+        id: pr
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER_PR: ${{ github.event.pull_request.number }}
+          PR_NUMBER_ISSUE: ${{ github.event.issue.number }}
+        run: |
+          if [ "$EVENT_NAME" = "issue_comment" ]; then
+            echo "number=$PR_NUMBER_ISSUE" >> "$GITHUB_OUTPUT"
+          elif [ -n "$PR_NUMBER_PR" ]; then
+            echo "number=$PR_NUMBER_PR" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Check that at least one review has been submitted
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "Checking reviews on PR #$PR_NUMBER..."
+          REVIEWS=$(gh api "repos/$REPO/pulls/$PR_NUMBER/reviews" --jq 'length')
+          if [ "$REVIEWS" -eq 0 ]; then
+            echo "::error::No reviews found on this PR. At least one review is required before merge."
+            exit 1
+          fi
+          echo "✅ Found $REVIEWS review(s) on this PR."
+
+  check-unresolved-threads:
+    name: Block merge on unresolved review threads
+    if: github.event_name != 'issue_comment' || github.event.issue.pull_request != null
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine PR number
+        id: pr
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER_PR: ${{ github.event.pull_request.number }}
+          PR_NUMBER_ISSUE: ${{ github.event.issue.number }}
+        run: |
+          if [ "$EVENT_NAME" = "issue_comment" ]; then
+            echo "number=$PR_NUMBER_ISSUE" >> "$GITHUB_OUTPUT"
+          elif [ -n "$PR_NUMBER_PR" ]; then
+            echo "number=$PR_NUMBER_PR" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Check for unresolved review threads
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          OWNER=$(echo "$REPO" | cut -d'/' -f1)
+          REPO_NAME=$(echo "$REPO" | cut -d'/' -f2)
+
+          echo "Checking review threads on PR #$PR_NUMBER..."
+
+          RESULT=$(gh api graphql -f query='
+            query($owner: String!, $repo: String!, $pr: Int!) {
+              repository(owner: $owner, name: $repo) {
+                pullRequest(number: $pr) {
+                  reviewThreads(first: 100) {
+                    nodes {
+                      isResolved
+                      comments(first: 1) {
+                        nodes {
+                          body
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ' -f owner="$OWNER" -f repo="$REPO_NAME" -F pr="$PR_NUMBER")
+
+          TOTAL=$(echo "$RESULT" | jq '.data.repository.pullRequest.reviewThreads.nodes | length')
+          UNRESOLVED=$(echo "$RESULT" | jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)] | length')
+
+          echo "Total review threads: $TOTAL"
+          echo "Unresolved threads: $UNRESOLVED"
+
+          if [ "$UNRESOLVED" -gt 0 ]; then
+            echo "$RESULT" | jq -r '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | .comments.nodes[0].body[:80]' | while read -r line; do
+              echo "  ❌ Unresolved: $line"
+            done
+            echo "::error::$UNRESOLVED unresolved review thread(s) found. Resolve all conversations before merging."
+            exit 1
+          fi
+
+          echo "✅ All review threads are resolved."

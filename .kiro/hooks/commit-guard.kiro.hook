@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "name": "Commit Convention & Test Guard",
+  "description": "Before any shell command containing git commit, validate the commit message follows Conventional Commits and run tests.",
+  "version": "1",
+  "when": {
+    "type": "preToolUse",
+    "toolTypes": ["shell"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A shell command is about to run. If it contains 'git commit', do these checks BEFORE allowing it:\n1. Verify the commit message follows Conventional Commits format (feat:, fix:, chore:, refactor:, test:, docs:, style:, perf:, ci:, build:, revert:). If it doesn't, REJECT and suggest a corrected message.\n2. Run 'pytest --tb=short -q' and verify tests pass. If tests fail, REJECT the commit and show the failures.\nIf the command is NOT a git commit, allow it to proceed without checks."
+  }
+}

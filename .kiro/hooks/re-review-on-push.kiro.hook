@@ -1,0 +1,14 @@
+{
+  "enabled": false,
+  "name": "Re-review on PR Push",
+  "description": "When files are pushed to a PR branch, re-trigger the code-reviewer to check if previous review comments were addressed. Caps at 3 review rounds to prevent infinite loops.",
+  "version": "1.0.0",
+  "when": {
+    "type": "postToolUse",
+    "toolTypes": [".*push_files$"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Files were just pushed, likely addressing review feedback. Perform a follow-up review round:\n\n1. Find the open PR for the branch that was just pushed to using list_pull_requests.\n2. Use get_pull_request_reviews to count how many reviews have been submitted so far.\n3. If there are already 3 or more reviews, do NOT submit another review. Instead, post a final summary comment using add_issue_comment saying: 'Review loop reached maximum rounds (3). Please review the remaining items manually or request a fresh review.' Then stop.\n4. If under the cap, use the code-reviewer agent to re-review the PR. The re-review should focus specifically on whether previous 🔴 Must fix and 🟡 Should fix items have been addressed. For each previously flagged item, mark it as ✅ Resolved or ❌ Still open.\n5. If all previous 🔴 items are resolved, submit an APPROVE review. If any 🔴 items remain, submit REQUEST_CHANGES with only the unresolved items."
+  }
+}

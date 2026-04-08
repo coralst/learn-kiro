@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "name": "Verify Review Comments Posted",
+  "description": "After the code-reviewer agent finishes, verify that review comments were actually posted to the PR. Alerts if the review was empty or failed silently.",
+  "version": "1.0.0",
+  "when": {
+    "type": "postToolUse",
+    "toolTypes": [".*create_pull_request_review$"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A PR review was just submitted. Verify the review was meaningful by checking: 1) The review body is not empty. 2) At least one inline comment was posted OR the review explicitly states the PR is clean. If the review appears empty or failed, warn the user that the PR may not have been properly reviewed and suggest re-running the code-reviewer agent."
+  }
+}
