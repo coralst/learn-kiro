@@ -94,3 +94,54 @@ describe('ProfileCard — happy-path rendering (Task 2.1)', () => {
     expect(container.querySelector('p')).not.toBeInTheDocument();
   });
 });
+
+describe('ProfileCard — loading skeleton state (Task 2.2)', () => {
+  it('renders skeleton with aria-busy="true" when isLoading is true', () => {
+    const { container } = render(<ProfileCard isLoading />);
+    const article = container.querySelector('article')!;
+    expect(article).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('renders skeleton placeholder divs for avatar, name, and bio', () => {
+    const { container } = render(<ProfileCard isLoading />);
+    expect(container.querySelector('.skeletonAvatar')).toBeInTheDocument();
+    expect(container.querySelector('.skeletonName')).toBeInTheDocument();
+    expect(container.querySelector('.skeletonBio')).toBeInTheDocument();
+  });
+
+  it('does not render user content when isLoading is true', () => {
+    render(<ProfileCard user={fullUser} isLoading />);
+    expect(screen.queryByText('Ada Lovelace')).not.toBeInTheDocument();
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pioneer of computing.')).not.toBeInTheDocument();
+  });
+
+  it('does not set aria-busy when isLoading is false', () => {
+    const { container } = render(<ProfileCard user={fullUser} />);
+    const article = container.querySelector('article')!;
+    expect(article).not.toHaveAttribute('aria-busy');
+  });
+
+  it('renders skeleton inside the card container', () => {
+    const { container } = render(<ProfileCard isLoading />);
+    const article = container.querySelector('article')!;
+    expect(article.querySelector('.skeleton')).toBeInTheDocument();
+  });
+
+  it('applies size variant class to skeleton wrapper', () => {
+    const { container } = render(<ProfileCard isLoading size="lg" />);
+    const skeleton = container.querySelector('.skeleton')!;
+    expect(skeleton.className).toContain('lg');
+  });
+
+  it('defaults to md size on skeleton when no size provided', () => {
+    const { container } = render(<ProfileCard isLoading />);
+    const skeleton = container.querySelector('.skeleton')!;
+    expect(skeleton.className).toContain('md');
+  });
+
+  it('does not render skeleton when isLoading is false', () => {
+    const { container } = render(<ProfileCard user={fullUser} />);
+    expect(container.querySelector('.skeleton')).not.toBeInTheDocument();
+  });
+});
