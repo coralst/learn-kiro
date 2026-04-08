@@ -1,7 +1,7 @@
 {
   "enabled": true,
   "name": "Lint on Save",
-  "description": "Run ruff linter on Python files whenever they are saved.",
+  "description": "Run ruff linter on the specific Python file that was edited.",
   "version": "1",
   "when": {
     "type": "fileEdited",
@@ -11,6 +11,6 @@
   },
   "then": {
     "type": "runCommand",
-    "command": "ruff check --fix ."
+    "command": "ruff check --fix ${file}"
   }
 }
