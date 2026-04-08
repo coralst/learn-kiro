@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request_review:
     types: [submitted, dismissed]
+  pull_request_review_comment:
+    types: [created]
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
@@ -13,33 +17,57 @@ permissions:
 jobs:
   check-review-comments:
     name: Verify review comments exist
+    if: github.event_name != 'issue_comment' || github.event.issue.pull_request != null
     runs-on: ubuntu-latest
     steps:
+      - name: Determine PR number
+        id: pr
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER_PR: ${{ github.event.pull_request.number }}
+          PR_NUMBER_ISSUE: ${{ github.event.issue.number }}
+        run: |
+          if [ "$EVENT_NAME" = "issue_comment" ]; then
+            echo "number=$PR_NUMBER_ISSUE" >> "$GITHUB_OUTPUT"
+          elif [ -n "$PR_NUMBER_PR" ]; then
+            echo "number=$PR_NUMBER_PR" >> "$GITHUB_OUTPUT"
+          fi
       - name: Check that at least one review has been submitted
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
           REPO: ${{ github.repository }}
         run: |
           echo "Checking reviews on PR #$PR_NUMBER..."
-
           REVIEWS=$(gh api "repos/$REPO/pulls/$PR_NUMBER/reviews" --jq 'length')
-
           if [ "$REVIEWS" -eq 0 ]; then
             echo "::error::No reviews found on this PR. At least one review is required before merge."
             exit 1
           fi
-
           echo "✅ Found $REVIEWS review(s) on this PR."
 
   check-unresolved-threads:
     name: Block merge on unresolved review threads
+    if: github.event_name != 'issue_comment' || github.event.issue.pull_request != null
     runs-on: ubuntu-latest
     steps:
+      - name: Determine PR number
+        id: pr
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER_PR: ${{ github.event.pull_request.number }}
+          PR_NUMBER_ISSUE: ${{ github.event.issue.number }}
+        run: |
+          if [ "$EVENT_NAME" = "issue_comment" ]; then
+            echo "number=$PR_NUMBER_ISSUE" >> "$GITHUB_OUTPUT"
+          elif [ -n "$PR_NUMBER_PR" ]; then
+            echo "number=$PR_NUMBER_PR" >> "$GITHUB_OUTPUT"
+          fi
       - name: Check for unresolved review threads
         uses: actions/github-script@v7
         with:
           script: |
+            const prNumber = parseInt('${{ steps.pr.outputs.number }}', 10);
             const { data: { repository } } = await github.graphql(`
               query($owner: String!, $repo: String!, $pr: Int!) {
                 repository(owner: $owner, name: $repo) {
@@ -60,7 +88,7 @@ jobs:
             `, {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pr: context.issue.number
+              pr: prNumber
             });
 
             const threads = repository.pullRequest.reviewThreads.nodes;
